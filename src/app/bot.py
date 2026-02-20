@@ -5,11 +5,12 @@ import logging
 from src.app.state import BotState
 from src.config.settings import Settings
 from src.exchange.base import ExchangeClient
+from src.risk.risk_manager import RiskManager
 from src.strategy.base import Strategy
 
 
 class Bot:
-    """Application orchestration shell for Milestone B."""
+    """Application orchestration shell for Milestone C2."""
 
     def __init__(
         self,
@@ -18,12 +19,14 @@ class Bot:
         exchange_client: ExchangeClient,
         strategy: Strategy,
         logger: logging.Logger,
+        risk_manager: RiskManager,
     ) -> None:
         self.settings = settings
         self.notifier = notifier
         self.exchange_client = exchange_client
         self.strategy = strategy
         self.logger = logger
+        self.risk_manager = risk_manager
         self.state = BotState()
 
     def run_once(self) -> None:
@@ -37,6 +40,13 @@ class Bot:
             limit=self.settings.strategy_slow + 10,
         )
         decision = self.strategy.generate(candles, position=None)
+        position = self.state.positions.get(self.settings.symbol)
+        risk_decision = self.risk_manager.evaluate(
+            settings=self.settings,
+            state=self.state,
+            position=position,
+            signal_decision=decision,
+        )
 
         self.logger.info(
             "market snapshot",
@@ -47,6 +57,9 @@ class Bot:
                 "last_close": str(candles[-1].close_price) if candles else "n/a",
                 "decision_signal": decision.signal,
                 "decision_reason": decision.reason,
+                "risk_allow": risk_decision.allow,
+                "risk_reason": risk_decision.reason,
+                "risk_severity": risk_decision.severity,
             },
         )
 

@@ -26,6 +26,9 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "TELEGRAM_TOKEN",
         "TELEGRAM_CHAT_ID",
         "NOTIFY_ON_START",
+        "MAX_TRADES_PER_DAY",
+        "DAILY_PROFIT_STOP_PCT",
+        "DAILY_LOSS_STOP_PCT",
     ]:
         monkeypatch.delenv(key, raising=False)
 
@@ -46,6 +49,9 @@ def test_load_settings_allows_missing_binance_keys_in_dry_run(
     assert settings.timeframe == DEFAULT_TIMEFRAME
     assert settings.strategy_fast == 9
     assert settings.strategy_slow == 21
+    assert settings.max_trades_per_day == 20
+    assert settings.daily_profit_stop_pct == 5.0
+    assert settings.daily_loss_stop_pct == -3.0
 
 
 def test_load_settings_requires_binance_keys_when_not_dry_run(
@@ -83,6 +89,23 @@ def test_load_settings_validates_strategy_periods(
 ) -> None:
     monkeypatch.setenv("STRATEGY_FAST", "21")
     monkeypatch.setenv("STRATEGY_SLOW", "9")
+
+    with pytest.raises(SettingsError):
+        load_settings()
+
+
+def test_load_settings_validates_daily_stops(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DAILY_LOSS_STOP_PCT", "6")
+    monkeypatch.setenv("DAILY_PROFIT_STOP_PCT", "5")
+
+    with pytest.raises(SettingsError):
+        load_settings()
+
+
+def test_load_settings_validates_daily_profit_stop_type(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DAILY_PROFIT_STOP_PCT", "abc")
 
     with pytest.raises(SettingsError):
         load_settings()
