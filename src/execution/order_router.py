@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from src.app.state import BotState
@@ -12,8 +12,6 @@ from src.exchange.base import ExchangeClient, OrderRequest, OrderResult
 from src.execution.sizing import calculate_order_qty
 from src.risk.risk_manager import RiskDecision
 from src.strategy.base import SignalDecision
-
-UTC = getattr(datetime, "UTC", timezone(timedelta(0)))
 
 
 @dataclass(slots=True)
