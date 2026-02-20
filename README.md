@@ -1,75 +1,51 @@
-# Binance Futures Auto-Trader (Milestone A Skeleton)
+# Binance Futures Auto-Trader (Milestone B)
 
 ## Purpose
-Milestone A establishes a production-minded project skeleton for a Binance futures auto-trader that supports local development and testnet experimentation.
+Milestone B introduces a Binance USDT-M Futures **testnet adapter** with strict safety defaults:
+- public market-data reads,
+- signed account reads with DRY_RUN-safe fallback,
+- mock order path in DRY_RUN only,
+- no live order execution logic.
 
-This milestone focuses on:
-- typed and testable foundations,
-- config loading and validation,
-- structured logging,
-- dependency-injected bot orchestration,
-- CI checks for lint/format/tests.
+## Implemented in Milestone B
+- `ExchangeClient` abstraction and typed domain models (`Candle`, `Balance`, `PositionSummary`, `PriceQuote`, `OrderRequest`, `OrderResult`).
+- `BinanceFuturesTestnetClient` using `urllib` + HMAC SHA256 signing for signed calls.
+- Structured exchange exceptions:
+  - `ExchangeError`
+  - `ExchangeAuthError`
+  - `ExchangeRateLimitError`
+- Bot wiring to fetch and log mark price + recent candles each tick.
+- No infinite loops and no real order placement.
 
-## Non-goals (Milestone A)
-- No real trading logic.
-- No live order execution.
-- No infinite loop by default.
+## DRY_RUN behavior
+- `DRY_RUN=1` (default):
+  - Public endpoints work without Binance keys.
+  - Signed endpoints (`balances`, `positions`) safely return empty lists when keys are missing.
+  - `place_order` returns a mock result and never places real orders.
+- `DRY_RUN=0`:
+  - `BINANCE_API_KEY` and `BINANCE_SECRET_KEY` are required for signed endpoints.
+  - Real order placement is still intentionally disabled in this milestone.
 
-## Project layout
-
-```text
-auto-trader/
-  src/
-    app/
-      bot.py
-      state.py
-      types.py
-    config/
-      constants.py
-      logging_setup.py
-      settings.py
-    notify/
-      telegram.py
-    main.py
-  tests/
-    test_settings.py
-    test_state.py
-  logs/
-  .github/workflows/ci.yml
-  .gitignore
-  pyproject.toml
-  requirements.txt
-  README.md
-```
-
-## Setup
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-Create a `.env` file (optional):
+## Environment variables
 
 ```env
-# Safe skeleton mode (default true)
 DRY_RUN=1
-NOTIFY_ON_START=0
 LOG_LEVEL=INFO
 
-# Required only when DRY_RUN=0
-BINANCE_API_KEY=your_api_key
-BINANCE_SECRET_KEY=your_secret_key
+# Optional for public endpoints; required for signed endpoints when DRY_RUN=0
+BINANCE_API_KEY=
+BINANCE_SECRET_KEY=
 
-# Optional for Telegram notifications
-TELEGRAM_TOKEN=your_telegram_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
+# Milestone B additions
+BINANCE_BASE_URL=https://testnet.binancefuture.com
+BINANCE_RECV_WINDOW=5000
+SYMBOL=BTCUSDT
+
+# Optional notifications
+TELEGRAM_TOKEN=
+TELEGRAM_CHAT_ID=
+NOTIFY_ON_START=0
 ```
-
-### DRY_RUN behavior
-- `DRY_RUN=1` (default): Binance API keys are not required.
-- `DRY_RUN=0`: `BINANCE_API_KEY` and `BINANCE_SECRET_KEY` are required and validated at startup.
 
 ## Run
 
@@ -80,18 +56,11 @@ python -m src.main
 ## Test
 
 ```bash
+ruff check .
+black --check .
 pytest
 ```
 
-## Quality checks
-
-```bash
-ruff check .
-black --check .
-```
-
-## Next milestones
-- **Milestone B:** Binance client abstraction + testnet market data adapter.
-- **Milestone C:** Strategy interface + first signal generator.
-- **Milestone D:** Risk management and order execution guards.
-- **Milestone E:** Persistence, metrics, and operational tooling.
+## Notes
+- This repository intentionally avoids external dependencies for the exchange adapter.
+- Milestone C can add strategy logic on top of the current exchange abstraction.

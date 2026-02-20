@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-import enum
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import StrEnum
 
 
-class Signal(enum.StrEnum):
+class Signal(StrEnum):
     """High-level trade signals used by future strategy modules."""
 
     BUY = "buy"

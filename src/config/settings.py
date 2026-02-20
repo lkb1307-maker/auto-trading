@@ -7,12 +7,18 @@ from dataclasses import dataclass
 
 from .constants import DEFAULT_LOG_LEVEL
 
+DEFAULT_BINANCE_BASE_URL = "https://testnet.binancefuture.com"
+DEFAULT_SYMBOL = "BTCUSDT"
+
 
 @dataclass(frozen=True, slots=True)
 class Settings:
     dry_run: bool = True
     binance_api_key: str | None = None
     binance_secret_key: str | None = None
+    binance_base_url: str = DEFAULT_BINANCE_BASE_URL
+    binance_recv_window: int = 5000
+    symbol: str = DEFAULT_SYMBOL
     telegram_token: str | None = None
     telegram_chat_id: str | None = None
     notify_on_start: bool = False
@@ -38,6 +44,22 @@ def _get_bool(name: str, default: bool = False) -> bool:
     if raw is None:
         return default
     return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _get_int(name: str, default: int) -> int:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+
+    try:
+        value = int(raw)
+    except ValueError as exc:
+        raise SettingsError(f"{name} must be an integer") from exc
+
+    if value <= 0:
+        raise SettingsError(f"{name} must be greater than zero")
+
+    return value
 
 
 def _require(name: str) -> str:
@@ -66,6 +88,9 @@ def load_settings() -> Settings:
         dry_run=dry_run,
         binance_api_key=binance_api_key,
         binance_secret_key=binance_secret_key,
+        binance_base_url=os.getenv("BINANCE_BASE_URL", DEFAULT_BINANCE_BASE_URL),
+        binance_recv_window=_get_int("BINANCE_RECV_WINDOW", default=5000),
+        symbol=os.getenv("SYMBOL", DEFAULT_SYMBOL),
         telegram_token=os.getenv("TELEGRAM_TOKEN"),
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID"),
         notify_on_start=_get_bool("NOTIFY_ON_START", default=False),
