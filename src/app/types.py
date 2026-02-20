@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+import enum
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from enum import StrEnum
+from datetime import datetime, timezone
 
 
-class Signal(StrEnum):
+class Signal(enum.StrEnum):
     """High-level trade signals used by future strategy modules."""
 
     BUY = "buy"
@@ -31,4 +31,6 @@ class PositionSummary:
     size: float = 0.0
     entry_price: float | None = None
     unrealized_pnl: float = 0.0
-    as_of: datetime = field(default_factory=lambda: datetime.now(UTC))
+    as_of: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc),  # noqa: UP017
+    )
