@@ -5,6 +5,7 @@ from src.config.logging_setup import configure_logging
 from src.config.settings import load_settings
 from src.exchange.binance_testnet import BinanceFuturesTestnetClient
 from src.notify.telegram import TelegramNotifier
+from src.risk.risk_manager import RiskManager
 from src.strategy.ema_cross import EmaCrossConfig, EmaCrossStrategy
 
 
@@ -31,6 +32,7 @@ def main() -> None:
         exchange_client=exchange_client,
         strategy=strategy,
         logger=logger,
+        risk_manager=RiskManager(),
     )
     bot.run_once()
 

@@ -10,6 +10,9 @@ from .constants import DEFAULT_LOG_LEVEL
 DEFAULT_BINANCE_BASE_URL = "https://testnet.binancefuture.com"
 DEFAULT_SYMBOL = "BTCUSDT"
 DEFAULT_TIMEFRAME = "1h"
+DEFAULT_MAX_TRADES_PER_DAY = 20
+DEFAULT_DAILY_PROFIT_STOP_PCT = 5.0
+DEFAULT_DAILY_LOSS_STOP_PCT = -3.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +26,9 @@ class Settings:
     timeframe: str = DEFAULT_TIMEFRAME
     strategy_fast: int = 9
     strategy_slow: int = 21
+    max_trades_per_day: int = DEFAULT_MAX_TRADES_PER_DAY
+    daily_profit_stop_pct: float = DEFAULT_DAILY_PROFIT_STOP_PCT
+    daily_loss_stop_pct: float = DEFAULT_DAILY_LOSS_STOP_PCT
     telegram_token: str | None = None
     telegram_chat_id: str | None = None
     notify_on_start: bool = False
@@ -66,6 +72,17 @@ def _get_int(name: str, default: int) -> int:
     return value
 
 
+def _get_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+
+    try:
+        return float(raw)
+    except ValueError as exc:
+        raise SettingsError(f"{name} must be a float") from exc
+
+
 def _require(name: str) -> str:
     value = os.getenv(name)
     if value is None or not value.strip():
@@ -94,6 +111,21 @@ def load_settings() -> Settings:
     if strategy_fast >= strategy_slow:
         raise SettingsError("STRATEGY_FAST must be less than STRATEGY_SLOW")
 
+    max_trades_per_day = _get_int("MAX_TRADES_PER_DAY", DEFAULT_MAX_TRADES_PER_DAY)
+    daily_profit_stop_pct = _get_float(
+        "DAILY_PROFIT_STOP_PCT",
+        DEFAULT_DAILY_PROFIT_STOP_PCT,
+    )
+    daily_loss_stop_pct = _get_float(
+        "DAILY_LOSS_STOP_PCT",
+        DEFAULT_DAILY_LOSS_STOP_PCT,
+    )
+
+    if daily_loss_stop_pct >= daily_profit_stop_pct:
+        raise SettingsError(
+            "DAILY_LOSS_STOP_PCT must be less than DAILY_PROFIT_STOP_PCT"
+        )
+
     return Settings(
         dry_run=dry_run,
         binance_api_key=binance_api_key,
@@ -104,6 +136,9 @@ def load_settings() -> Settings:
         timeframe=os.getenv("TIMEFRAME", DEFAULT_TIMEFRAME),
         strategy_fast=strategy_fast,
         strategy_slow=strategy_slow,
+        max_trades_per_day=max_trades_per_day,
+        daily_profit_stop_pct=daily_profit_stop_pct,
+        daily_loss_stop_pct=daily_loss_stop_pct,
         telegram_token=os.getenv("TELEGRAM_TOKEN"),
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID"),
         notify_on_start=_get_bool("NOTIFY_ON_START", default=False),
