@@ -5,12 +5,13 @@ import logging
 from src.app.state import BotState
 from src.config.settings import Settings
 from src.exchange.base import ExchangeClient
+from src.execution.order_router import OrderRouter
 from src.risk.risk_manager import RiskManager
 from src.strategy.base import Strategy
 
 
 class Bot:
-    """Application orchestration shell for Milestone C2."""
+    """Application orchestration shell for Milestone C3."""
 
     def __init__(
         self,
@@ -20,6 +21,7 @@ class Bot:
         strategy: Strategy,
         logger: logging.Logger,
         risk_manager: RiskManager,
+        order_router: OrderRouter,
     ) -> None:
         self.settings = settings
         self.notifier = notifier
@@ -27,6 +29,7 @@ class Bot:
         self.strategy = strategy
         self.logger = logger
         self.risk_manager = risk_manager
+        self.order_router = order_router
         self.state = BotState()
 
     def run_once(self) -> None:
@@ -47,6 +50,13 @@ class Bot:
             position=position,
             signal_decision=decision,
         )
+        execution_result = self.order_router.route(
+            signal_decision=decision,
+            risk_decision=risk_decision,
+            position=position,
+            state=self.state,
+            settings=self.settings,
+        )
 
         self.logger.info(
             "market snapshot",
@@ -60,8 +70,17 @@ class Bot:
                 "risk_allow": risk_decision.allow,
                 "risk_reason": risk_decision.reason,
                 "risk_severity": risk_decision.severity,
+                "execution_orders": len(execution_result.orders),
+                "execution_skipped_reason": execution_result.skipped_reason,
             },
         )
+
+        if execution_result.orders and self.settings.notify_on_trade:
+            order = execution_result.orders[0]
+            self._send_notification(
+                "[TRADE] "
+                f"{order.symbol} status={order.status} order_id={order.order_id}"
+            )
 
         if self.settings.dry_run and self.settings.notify_on_start:
             self._send_notification("[DRY_RUN] Auto-trader bot tick")

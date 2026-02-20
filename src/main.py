@@ -4,6 +4,7 @@ from src.app.bot import Bot
 from src.config.logging_setup import configure_logging
 from src.config.settings import load_settings
 from src.exchange.binance_testnet import BinanceFuturesTestnetClient
+from src.execution.order_router import OrderRouter
 from src.notify.telegram import TelegramNotifier
 from src.risk.risk_manager import RiskManager
 from src.strategy.ema_cross import EmaCrossConfig, EmaCrossStrategy
@@ -33,6 +34,7 @@ def main() -> None:
         strategy=strategy,
         logger=logger,
         risk_manager=RiskManager(),
+        order_router=OrderRouter(exchange_client=exchange_client, logger=logger),
     )
     bot.run_once()
 
