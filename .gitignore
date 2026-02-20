@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# Env + local config
+.env
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# OS
+.DS_Store
