@@ -113,9 +113,7 @@ class BinanceFuturesTestnetClient(ExchangeClient):
                 client_order_id="DRY_RUN",
             )
 
-        raise ExchangeError(
-            "Real order placement is intentionally disabled in Milestone B."
-        )
+        raise NotImplementedError("Live trading not enabled in Milestone C3")
 
     def _can_use_signed_endpoints(self) -> bool:
         has_key = bool(self.settings.binance_api_key)
