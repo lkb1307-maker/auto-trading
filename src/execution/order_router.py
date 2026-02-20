@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from src.app.state import BotState
@@ -12,6 +12,8 @@ from src.exchange.base import ExchangeClient, OrderRequest, OrderResult
 from src.execution.sizing import calculate_order_qty
 from src.risk.risk_manager import RiskDecision
 from src.strategy.base import SignalDecision
+
+UTC = getattr(datetime, "UTC", timezone(timedelta(0)))
 
 
 @dataclass(slots=True)
@@ -64,7 +66,7 @@ class OrderRouter:
         )
         order_result = self.exchange_client.place_order(order_request)
         state.trades_today += 1
-        state.last_trade_at = datetime.now(timezone.utc)  # noqa: UP017
+        state.last_trade_at = datetime.now(UTC)
         self.logger.info(
             "simulated execution routed",
             extra={

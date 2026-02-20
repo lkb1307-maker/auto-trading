@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 
 UTC = getattr(dt, "UTC", dt.timezone(dt.timedelta(0)))
 
 
-class Signal(str, Enum):
+class Signal(StrEnum):
     """High-level trade signals used by future strategy modules."""
 
     LONG = "long"
