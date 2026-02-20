@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from decimal import Decimal
 
 from src.exchange.base import Candle, PositionSummary
 from src.strategy.base import Signal, SignalDecision, Strategy
+
+UTC = getattr(dt, "UTC", dt.timezone(dt.timedelta(0)))
 
 
 @dataclass(frozen=True, slots=True)
@@ -34,11 +36,7 @@ class EmaCrossStrategy(Strategy):
         del position
 
         if len(candles) < self.min_candles:
-            fallback_time = (
-                candles[-1].close_time
-                if candles
-                else datetime.now(timezone.utc)  # noqa: UP017
-            )  # noqa: UP017
+            fallback_time = candles[-1].close_time if candles else dt.datetime.now(UTC)
             return SignalDecision(
                 signal=Signal.HOLD,
                 reason=(

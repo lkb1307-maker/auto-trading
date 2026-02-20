@@ -1,15 +1,17 @@
 from __future__ import annotations
 
+import datetime as dt
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
 from enum import Enum
+
+UTC = getattr(dt, "UTC", dt.timezone(dt.timedelta(0)))
 
 
 class Signal(str, Enum):
     """High-level trade signals used by future strategy modules."""
 
-    BUY = "buy"
-    SELL = "sell"
+    LONG = "long"
+    SHORT = "short"
     HOLD = "hold"
 
 
@@ -31,6 +33,6 @@ class PositionSummary:
     size: float = 0.0
     entry_price: float | None = None
     unrealized_pnl: float = 0.0
-    as_of: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc),  # noqa: UP017
+    as_of: dt.datetime = field(
+        default_factory=lambda: dt.datetime.now(UTC),
     )

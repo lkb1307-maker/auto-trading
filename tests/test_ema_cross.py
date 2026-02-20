@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+import datetime as dt
 from decimal import Decimal
 
 from src.exchange.base import Candle
 from src.strategy.base import Signal
 from src.strategy.ema_cross import EmaCrossConfig, EmaCrossStrategy
 
+UTC = getattr(dt, "UTC", dt.timezone(dt.timedelta(0)))
+
 
 def _candles_from_closes(closes: list[Decimal]) -> list[Candle]:
-    start = datetime(2024, 1, 1, tzinfo=timezone.utc)  # noqa: UP017
+    start = dt.datetime(2024, 1, 1, tzinfo=UTC)
     candles: list[Candle] = []
     for idx, close in enumerate(closes):
-        open_time = start + timedelta(hours=idx)
-        close_time = open_time + timedelta(hours=1)
+        open_time = start + dt.timedelta(hours=idx)
+        close_time = open_time + dt.timedelta(hours=1)
         candles.append(
             Candle(
                 open_time=open_time,
