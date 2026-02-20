@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
 
-class Signal(enum.StrEnum):
+class Signal(str, enum.Enum):
     """High-level trade signals used by future strategy modules."""
 
     BUY = "buy"

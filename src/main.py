@@ -3,6 +3,7 @@ from __future__ import annotations
 from src.app.bot import Bot
 from src.config.logging_setup import configure_logging
 from src.config.settings import load_settings
+from src.exchange.binance_testnet import BinanceFuturesTestnetClient
 from src.notify.telegram import TelegramNotifier
 
 
@@ -15,8 +16,14 @@ def main() -> None:
         chat_id=settings.telegram_chat_id,
         logger=logger,
     )
+    exchange_client = BinanceFuturesTestnetClient(settings=settings, logger=logger)
 
-    bot = Bot(settings=settings, notifier=notifier, logger=logger)
+    bot = Bot(
+        settings=settings,
+        notifier=notifier,
+        exchange_client=exchange_client,
+        logger=logger,
+    )
     bot.run_once()
 
 

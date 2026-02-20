@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pytest
 
-from src.config.settings import SettingsError, load_settings
+from src.config.settings import (
+    DEFAULT_BINANCE_BASE_URL,
+    DEFAULT_SYMBOL,
+    SettingsError,
+    load_settings,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -11,6 +16,9 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "DRY_RUN",
         "BINANCE_API_KEY",
         "BINANCE_SECRET_KEY",
+        "BINANCE_BASE_URL",
+        "BINANCE_RECV_WINDOW",
+        "SYMBOL",
         "TELEGRAM_TOKEN",
         "TELEGRAM_CHAT_ID",
         "NOTIFY_ON_START",
@@ -28,6 +36,9 @@ def test_load_settings_allows_missing_binance_keys_in_dry_run(
     assert settings.dry_run is True
     assert settings.binance_api_key is None
     assert settings.binance_secret_key is None
+    assert settings.binance_base_url == DEFAULT_BINANCE_BASE_URL
+    assert settings.binance_recv_window == 5000
+    assert settings.symbol == DEFAULT_SYMBOL
 
 
 def test_load_settings_requires_binance_keys_when_not_dry_run(
@@ -51,3 +62,10 @@ def test_load_settings_accepts_binance_keys_when_not_dry_run(
     assert settings.dry_run is False
     assert settings.binance_api_key == "key"
     assert settings.binance_secret_key == "secret"
+
+
+def test_load_settings_validates_recv_window(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("BINANCE_RECV_WINDOW", "0")
+
+    with pytest.raises(SettingsError):
+        load_settings()
