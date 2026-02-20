@@ -1,21 +1,24 @@
-# Binance Futures Auto-Trader (Milestone B)
+# Binance Futures Auto-Trader (Milestone C1)
 
 ## Purpose
-Milestone B introduces a Binance USDT-M Futures **testnet adapter** with strict safety defaults:
+Milestone C1 introduces a pure **strategy layer** on top of the Binance USDT-M Futures
+testnet adapter with strict safety defaults:
 - public market-data reads,
 - signed account reads with DRY_RUN-safe fallback,
-- mock order path in DRY_RUN only,
+- strategy-only signal generation (EMA crossover),
 - no live order execution logic.
 
-## Implemented in Milestone B
+## Implemented in Milestone C1
 - `ExchangeClient` abstraction and typed domain models (`Candle`, `Balance`, `PositionSummary`, `PriceQuote`, `OrderRequest`, `OrderResult`).
 - `BinanceFuturesTestnetClient` using `urllib` + HMAC SHA256 signing for signed calls.
 - Structured exchange exceptions:
   - `ExchangeError`
   - `ExchangeAuthError`
   - `ExchangeRateLimitError`
-- Bot wiring to fetch and log mark price + recent candles each tick.
-- No infinite loops and no real order placement.
+- `Strategy` interface with typed `SignalDecision` output.
+- Pure `EmaCrossStrategy` (no network/order side effects) using candle closes only.
+- Bot wiring to fetch candles, generate a strategy decision, and log signal + reason each tick.
+- No infinite loops and no real order placement in C1.
 
 ## DRY_RUN behavior
 - `DRY_RUN=1` (default):
@@ -40,6 +43,9 @@ BINANCE_SECRET_KEY=
 BINANCE_BASE_URL=https://testnet.binancefuture.com
 BINANCE_RECV_WINDOW=5000
 SYMBOL=BTCUSDT
+TIMEFRAME=1h
+STRATEGY_FAST=9
+STRATEGY_SLOW=21
 
 # Optional notifications
 TELEGRAM_TOKEN=
@@ -63,4 +69,5 @@ pytest
 
 ## Notes
 - This repository intentionally avoids external dependencies for the exchange adapter.
-- Milestone C can add strategy logic on top of the current exchange abstraction.
+- C1 strategy output is signal-only (`LONG`, `SHORT`, `HOLD`) and does not place orders.
+- A future milestone can map strategy signals to risk-managed order execution.
