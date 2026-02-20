@@ -1,0 +1,4 @@
+DEFAULT_LOOP_INTERVAL_SECONDS = 5
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_LOG_FILE = "logs/auto_trader.log"
+SUPPORTED_TIMEFRAMES = ("1m", "5m", "15m", "1h", "4h", "1d")
