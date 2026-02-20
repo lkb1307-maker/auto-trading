@@ -5,6 +5,7 @@ from src.config.logging_setup import configure_logging
 from src.config.settings import load_settings
 from src.exchange.binance_testnet import BinanceFuturesTestnetClient
 from src.notify.telegram import TelegramNotifier
+from src.strategy.ema_cross import EmaCrossConfig, EmaCrossStrategy
 
 
 def main() -> None:
@@ -17,11 +18,18 @@ def main() -> None:
         logger=logger,
     )
     exchange_client = BinanceFuturesTestnetClient(settings=settings, logger=logger)
+    strategy = EmaCrossStrategy(
+        EmaCrossConfig(
+            fast_period=settings.strategy_fast,
+            slow_period=settings.strategy_slow,
+        )
+    )
 
     bot = Bot(
         settings=settings,
         notifier=notifier,
         exchange_client=exchange_client,
+        strategy=strategy,
         logger=logger,
     )
     bot.run_once()

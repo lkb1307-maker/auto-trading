@@ -5,6 +5,7 @@ import logging
 from src.app.state import BotState
 from src.config.settings import Settings
 from src.exchange.base import ExchangeClient
+from src.strategy.base import Strategy
 
 
 class Bot:
@@ -15,11 +16,13 @@ class Bot:
         settings: Settings,
         notifier: object,
         exchange_client: ExchangeClient,
+        strategy: Strategy,
         logger: logging.Logger,
     ) -> None:
         self.settings = settings
         self.notifier = notifier
         self.exchange_client = exchange_client
+        self.strategy = strategy
         self.logger = logger
         self.state = BotState()
 
@@ -28,7 +31,12 @@ class Bot:
         self.logger.info("bot tick", extra={"tick_count": self.state.tick_count})
 
         quote = self.exchange_client.get_mark_price(self.settings.symbol)
-        candles = self.exchange_client.get_candles(self.settings.symbol, "1m", 10)
+        candles = self.exchange_client.get_candles(
+            self.settings.symbol,
+            self.settings.timeframe,
+            limit=self.settings.strategy_slow + 10,
+        )
+        decision = self.strategy.generate(candles, position=None)
 
         self.logger.info(
             "market snapshot",
@@ -37,6 +45,8 @@ class Bot:
                 "mark_price": str(quote.mark_price),
                 "candles": len(candles),
                 "last_close": str(candles[-1].close_price) if candles else "n/a",
+                "decision_signal": decision.signal,
+                "decision_reason": decision.reason,
             },
         )
 

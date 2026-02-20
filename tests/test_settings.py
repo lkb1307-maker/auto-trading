@@ -5,6 +5,7 @@ import pytest
 from src.config.settings import (
     DEFAULT_BINANCE_BASE_URL,
     DEFAULT_SYMBOL,
+    DEFAULT_TIMEFRAME,
     SettingsError,
     load_settings,
 )
@@ -19,6 +20,9 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "BINANCE_BASE_URL",
         "BINANCE_RECV_WINDOW",
         "SYMBOL",
+        "TIMEFRAME",
+        "STRATEGY_FAST",
+        "STRATEGY_SLOW",
         "TELEGRAM_TOKEN",
         "TELEGRAM_CHAT_ID",
         "NOTIFY_ON_START",
@@ -39,6 +43,9 @@ def test_load_settings_allows_missing_binance_keys_in_dry_run(
     assert settings.binance_base_url == DEFAULT_BINANCE_BASE_URL
     assert settings.binance_recv_window == 5000
     assert settings.symbol == DEFAULT_SYMBOL
+    assert settings.timeframe == DEFAULT_TIMEFRAME
+    assert settings.strategy_fast == 9
+    assert settings.strategy_slow == 21
 
 
 def test_load_settings_requires_binance_keys_when_not_dry_run(
@@ -66,6 +73,16 @@ def test_load_settings_accepts_binance_keys_when_not_dry_run(
 
 def test_load_settings_validates_recv_window(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("BINANCE_RECV_WINDOW", "0")
+
+    with pytest.raises(SettingsError):
+        load_settings()
+
+
+def test_load_settings_validates_strategy_periods(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("STRATEGY_FAST", "21")
+    monkeypatch.setenv("STRATEGY_SLOW", "9")
 
     with pytest.raises(SettingsError):
         load_settings()
