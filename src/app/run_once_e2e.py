@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import time
+
 from src.app.state import BotState
 from src.config.settings import Settings
-from src.exchange.base import ExchangeClient
+from src.exchange.base import Candle, ExchangeClient
 from src.execution.order_router import OrderRouter
 from src.risk.risk_manager import RiskManager
 from src.strategy.base import Strategy
@@ -18,10 +20,15 @@ def run_e2e(
     if not settings.dry_run:
         raise RuntimeError("E2E mode requires DRY_RUN=1")
 
+    started_at = time.perf_counter()
     state = BotState()
     state.mark_tick()
 
-    candles = exchange.get_candles(settings.symbol, settings.timeframe, limit=50)
+    if settings.e2e_real_testnet:
+        candles = exchange.get_candles(settings.symbol, settings.timeframe, limit=50)
+    else:
+        candles = _get_candles_dry_run(exchange=exchange, settings=settings)
+
     position = state.positions.get(settings.symbol)
 
     decision = strategy.generate(candles, position=position)
@@ -40,8 +47,16 @@ def run_e2e(
     )
 
     return {
+        "mode": "e2e",
+        "symbol": settings.symbol,
+        "timeframe": settings.timeframe,
         "signal": decision.signal,
         "risk_allowed": risk.allow,
         "orders_count": len(result.orders),
         "trades_today": state.trades_today,
+        "latency_ms": round((time.perf_counter() - started_at) * 1000, 2),
     }
+
+
+def _get_candles_dry_run(exchange: ExchangeClient, settings: Settings) -> list[Candle]:
+    return exchange.get_candles(settings.symbol, settings.timeframe, limit=50)

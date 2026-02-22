@@ -1,4 +1,4 @@
-# Binance Futures Auto-Trader (Milestone D)
+# Binance Futures Auto-Trader (Milestone E)
 
 ## Purpose
 Milestone C3 introduces a simulated **execution layer** that routes strategy + risk decisions
@@ -48,6 +48,16 @@ into mock orders with strict safety defaults:
 
 **Safety:** E2E mode requires `DRY_RUN=1` and never places real orders.
 
+
+## Milestone E: Operational hardening
+- Exchange adapter now supports configurable request timeout (`HTTP_TIMEOUT_SECONDS`, default 5s).
+- `get_candles` and `get_positions` now include bounded retry handling (`RETRY_ATTEMPTS`, default 3) for network failures.
+- API key behavior is validated at client initialization:
+  - `DRY_RUN=1`: empty keys are allowed with warning logs.
+  - `DRY_RUN=0`: keys are required and startup fails fast.
+- E2E mode supports optional real Testnet candle fetch via `E2E_REAL_TESTNET=1` while still enforcing `DRY_RUN=1`.
+- Structured logs now include `mode`, `symbol`, `timeframe`, `signal`, `risk_allowed`, `orders_count`, and `latency_ms`.
+
 ## Environment variables
 
 ```env
@@ -72,6 +82,11 @@ DAILY_LOSS_STOP_PCT=-3.0
 # Milestone C3 additions
 ORDER_NOTIONAL_USDT=50.0
 NOTIFY_ON_TRADE=0
+
+# Milestone E additions
+HTTP_TIMEOUT_SECONDS=5
+RETRY_ATTEMPTS=3
+E2E_REAL_TESTNET=0
 
 # Optional notifications
 TELEGRAM_TOKEN=

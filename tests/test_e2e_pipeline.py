@@ -115,7 +115,19 @@ def test_run_e2e_returns_summary_and_updates_trades_conditionally(
         router=OrderRouter(exchange_client=exchange, logger=logging.getLogger()),
     )
 
-    assert set(summary) == {"signal", "risk_allowed", "orders_count", "trades_today"}
+    assert set(summary) == {
+        "mode",
+        "symbol",
+        "timeframe",
+        "signal",
+        "risk_allowed",
+        "orders_count",
+        "trades_today",
+        "latency_ms",
+    }
+    assert summary["mode"] == "e2e"
+    assert summary["symbol"] == "BTCUSDT"
+    assert summary["timeframe"] == "1h"
     assert summary["signal"] in set(Signal)
     assert summary["trades_today"] == summary["orders_count"]
     assert captured == {"symbol": "BTCUSDT", "timeframe": "1h", "limit": 50}

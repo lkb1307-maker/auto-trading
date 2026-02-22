@@ -40,8 +40,9 @@ class BinanceFuturesTestnetClient(ExchangeClient):
         self.logger = logger
         self.base_url = settings.binance_base_url.rstrip("/")
         self.recv_window = settings.binance_recv_window
-        self._timeout_seconds = 10
-        self._max_retries = 2
+        self._timeout_seconds = settings.http_timeout_seconds
+        self._retry_attempts = settings.retry_attempts
+        self._validate_api_keys()
 
     def get_mark_price(self, symbol: str) -> PriceQuote:
         response = self._request("GET", "/fapi/v1/premiumIndex", {"symbol": symbol})
@@ -52,10 +53,11 @@ class BinanceFuturesTestnetClient(ExchangeClient):
         )
 
     def get_candles(self, symbol: str, timeframe: str, limit: int) -> list[Candle]:
-        response = self._request(
-            "GET",
-            "/fapi/v1/klines",
-            {"symbol": symbol, "interval": timeframe, "limit": limit},
+        response = self._request_with_retry(
+            method="GET",
+            path="/fapi/v1/klines",
+            params={"symbol": symbol, "interval": timeframe, "limit": limit},
+            operation="get_candles",
         )
         return [self._to_candle(candle_data) for candle_data in response]
 
@@ -81,7 +83,13 @@ class BinanceFuturesTestnetClient(ExchangeClient):
         if symbol:
             params["symbol"] = symbol
 
-        response = self._request("GET", "/fapi/v2/positionRisk", params, signed=True)
+        response = self._request_with_retry(
+            method="GET",
+            path="/fapi/v2/positionRisk",
+            params=params,
+            signed=True,
+            operation="get_position",
+        )
         return [
             PositionSummary(
                 symbol=item["symbol"],
@@ -115,24 +123,71 @@ class BinanceFuturesTestnetClient(ExchangeClient):
 
         raise NotImplementedError("Live trading not enabled in Milestone C3")
 
-    def _can_use_signed_endpoints(self) -> bool:
+    def _validate_api_keys(self) -> None:
         has_key = bool(self.settings.binance_api_key)
         has_secret = bool(self.settings.binance_secret_key)
 
         if has_key and has_secret:
-            return True
+            return
 
         if self.settings.dry_run:
             self.logger.warning(
                 "Missing Binance API credentials in DRY_RUN mode; "
-                "using safe empty signed endpoint fallback"
+                "signed endpoints disabled"
             )
-            return False
+            return
 
-        raise ExchangeAuthError(
-            "BINANCE_API_KEY and BINANCE_SECRET_KEY are required "
-            "for signed endpoints when DRY_RUN=0."
+        raise RuntimeError(
+            "BINANCE_API_KEY and BINANCE_SECRET_KEY are required when DRY_RUN=0."
         )
+
+    def _can_use_signed_endpoints(self) -> bool:
+        return bool(self.settings.binance_api_key and self.settings.binance_secret_key)
+
+    def _request_with_retry(
+        self,
+        method: str,
+        path: str,
+        params: dict[str, Any] | None = None,
+        signed: bool = False,
+        operation: str = "exchange_request",
+    ) -> Any:
+        for attempt in range(1, self._retry_attempts + 1):
+            try:
+                return self._request(
+                    method=method, path=path, params=params, signed=signed
+                )
+            except error.URLError as exc:
+                self.logger.warning(
+                    "exchange network error; retrying",
+                    extra={
+                        "operation": operation,
+                        "attempt": attempt,
+                        "max_attempts": self._retry_attempts,
+                        "error": str(exc.reason),
+                    },
+                )
+                if attempt >= self._retry_attempts:
+                    raise ExchangeError(
+                        f"{operation} failed after {self._retry_attempts} attempts"
+                    ) from exc
+                time.sleep(0.2 * attempt)
+            except TimeoutError as exc:
+                self.logger.warning(
+                    "exchange timeout; retrying",
+                    extra={
+                        "operation": operation,
+                        "attempt": attempt,
+                        "max_attempts": self._retry_attempts,
+                    },
+                )
+                if attempt >= self._retry_attempts:
+                    raise ExchangeError(
+                        f"{operation} timed out after {self._retry_attempts} attempts"
+                    ) from exc
+                time.sleep(0.2 * attempt)
+
+        raise ExchangeError(f"{operation} failed")
 
     def _request(
         self,
@@ -161,32 +216,20 @@ class BinanceFuturesTestnetClient(ExchangeClient):
             extra={"method": method, "path": path, "signed": signed},
         )
 
-        attempt = 0
-        while True:
-            try:
-                req = request.Request(url=url, method=method, headers=headers)
-                with request.urlopen(req, timeout=self._timeout_seconds) as response:
-                    body = response.read().decode("utf-8")
-                return json.loads(body)
-            except error.HTTPError as exc:
-                body = exc.read().decode("utf-8") if exc.fp is not None else ""
-                if exc.code == 401:
-                    raise ExchangeAuthError("Binance authentication failed") from exc
-                if exc.code == 429:
-                    raise ExchangeRateLimitError("Binance rate limit exceeded") from exc
-                if exc.code >= 500 and attempt < self._max_retries:
-                    attempt += 1
-                    time.sleep(0.2 * attempt)
-                    continue
-                raise ExchangeError(
-                    f"Binance request failed with status {exc.code}: {body[:200]}"
-                ) from exc
-            except error.URLError as exc:
-                if attempt < self._max_retries:
-                    attempt += 1
-                    time.sleep(0.2 * attempt)
-                    continue
-                raise ExchangeError(f"Binance network error: {exc.reason}") from exc
+        try:
+            req = request.Request(url=url, method=method, headers=headers)
+            with request.urlopen(req, timeout=self._timeout_seconds) as response:
+                body = response.read().decode("utf-8")
+            return json.loads(body)
+        except error.HTTPError as exc:
+            body = exc.read().decode("utf-8") if exc.fp is not None else ""
+            if exc.code == 401:
+                raise ExchangeAuthError("Binance authentication failed") from exc
+            if exc.code == 429:
+                raise ExchangeRateLimitError("Binance rate limit exceeded") from exc
+            raise ExchangeError(
+                f"Binance request failed with status {exc.code}: {body[:200]}"
+            ) from exc
 
     def _build_signature(self, payload: str) -> str:
         if not self.settings.binance_secret_key:

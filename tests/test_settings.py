@@ -31,6 +31,9 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "DAILY_LOSS_STOP_PCT",
         "ORDER_NOTIONAL_USDT",
         "NOTIFY_ON_TRADE",
+        "HTTP_TIMEOUT_SECONDS",
+        "RETRY_ATTEMPTS",
+        "E2E_REAL_TESTNET",
     ]:
         monkeypatch.delenv(key, raising=False)
 
@@ -56,6 +59,9 @@ def test_load_settings_allows_missing_binance_keys_in_dry_run(
     assert settings.daily_loss_stop_pct == -3.0
     assert settings.order_notional_usdt == 50.0
     assert settings.notify_on_trade is False
+    assert settings.http_timeout_seconds == 5
+    assert settings.retry_attempts == 3
+    assert settings.e2e_real_testnet is False
 
 
 def test_load_settings_requires_binance_keys_when_not_dry_run(
@@ -130,3 +136,15 @@ def test_load_settings_parses_notify_on_trade(monkeypatch: pytest.MonkeyPatch) -
     settings = load_settings()
 
     assert settings.notify_on_trade is True
+
+
+def test_load_settings_parses_hardening_fields(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("HTTP_TIMEOUT_SECONDS", "7")
+    monkeypatch.setenv("RETRY_ATTEMPTS", "4")
+    monkeypatch.setenv("E2E_REAL_TESTNET", "1")
+
+    settings = load_settings()
+
+    assert settings.http_timeout_seconds == 7
+    assert settings.retry_attempts == 4
+    assert settings.e2e_real_testnet is True

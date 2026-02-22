@@ -14,6 +14,8 @@ DEFAULT_MAX_TRADES_PER_DAY = 20
 DEFAULT_DAILY_PROFIT_STOP_PCT = 5.0
 DEFAULT_DAILY_LOSS_STOP_PCT = -3.0
 DEFAULT_ORDER_NOTIONAL_USDT = 50.0
+DEFAULT_HTTP_TIMEOUT_SECONDS = 5
+DEFAULT_RETRY_ATTEMPTS = 3
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,6 +38,9 @@ class Settings:
     notify_on_start: bool = False
     notify_on_trade: bool = False
     log_level: str = DEFAULT_LOG_LEVEL
+    http_timeout_seconds: int = DEFAULT_HTTP_TIMEOUT_SECONDS
+    retry_attempts: int = DEFAULT_RETRY_ATTEMPTS
+    e2e_real_testnet: bool = False
 
 
 class SettingsError(ValueError):
@@ -155,4 +160,9 @@ def load_settings() -> Settings:
         notify_on_start=_get_bool("NOTIFY_ON_START", default=False),
         notify_on_trade=_get_bool("NOTIFY_ON_TRADE", default=False),
         log_level=os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL).upper(),
+        http_timeout_seconds=_get_int(
+            "HTTP_TIMEOUT_SECONDS", default=DEFAULT_HTTP_TIMEOUT_SECONDS
+        ),
+        retry_attempts=_get_int("RETRY_ATTEMPTS", default=DEFAULT_RETRY_ATTEMPTS),
+        e2e_real_testnet=_get_bool("E2E_REAL_TESTNET", default=False),
     )
