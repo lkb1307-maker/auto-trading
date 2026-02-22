@@ -1,4 +1,4 @@
-# Binance Futures Auto-Trader (Milestone C3)
+# Binance Futures Auto-Trader (Milestone D)
 
 ## Purpose
 Milestone C3 introduces a simulated **execution layer** that routes strategy + risk decisions
@@ -40,6 +40,14 @@ into mock orders with strict safety defaults:
   - `BINANCE_API_KEY` and `BINANCE_SECRET_KEY` are required for signed endpoints.
   - `place_order` raises `NotImplementedError("Live trading not enabled in Milestone C3")`.
 
+
+## Milestone D: E2E dry-run mode
+- Adds a one-shot end-to-end pipeline runner (`run_e2e`) for safe integration checks.
+- Runs one full pass: candles fetch -> strategy decision -> risk evaluation -> order routing.
+- Returns a compact summary with signal/risk/order count/trade count fields for quick verification.
+
+**Safety:** E2E mode requires `DRY_RUN=1` and never places real orders.
+
 ## Environment variables
 
 ```env
@@ -74,7 +82,7 @@ NOTIFY_ON_START=0
 ## Run
 
 ```bash
-python -m src.main
+python -m src.main --mode e2e
 ```
 
 ## Test
