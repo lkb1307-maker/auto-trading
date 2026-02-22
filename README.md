@@ -84,3 +84,23 @@ ruff check .
 black --check .
 pytest
 ```
+
+
+## Milestone D: end-to-end dry-run pipeline
+Milestone D adds an explicit one-shot E2E path that executes the full pipeline once:
+- fetch recent candles from Binance Testnet,
+- generate a strategy signal,
+- evaluate risk constraints,
+- route execution in DRY_RUN mode only,
+- print structured pipeline logs (`SIGNAL=...`, `RISK=...`, `EXECUTED=...`, `TRADES_TODAY=...`).
+
+### Run E2E mode
+```bash
+python -m src.main --mode e2e
+```
+
+### Safety (mandatory)
+- `DRY_RUN=1` is required for `--mode e2e`.
+- If `DRY_RUN` is not enabled, the app raises:
+  `RuntimeError("E2E mode requires DRY_RUN=1")`.
+- No real orders are submitted in this mode.
