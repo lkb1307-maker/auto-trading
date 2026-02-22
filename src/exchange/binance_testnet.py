@@ -5,7 +5,7 @@ import hmac
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from urllib import error, parse, request
@@ -20,6 +20,8 @@ from src.exchange.base import (
     PositionSummary,
     PriceQuote,
 )
+
+UTC = timezone(timedelta(0))
 
 
 class ExchangeError(RuntimeError):
@@ -49,7 +51,7 @@ class BinanceFuturesTestnetClient(ExchangeClient):
         return PriceQuote(
             symbol=response["symbol"],
             mark_price=Decimal(response["markPrice"]),
-            event_time=datetime.now(tz=timezone.utc),  # noqa: UP017
+            event_time=datetime.now(UTC),
         )
 
     def get_candles(self, symbol: str, timeframe: str, limit: int) -> list[Candle]:
@@ -252,17 +254,11 @@ class BinanceFuturesTestnetClient(ExchangeClient):
     @staticmethod
     def _to_candle(item: list[Any]) -> Candle:
         return Candle(
-            open_time=datetime.fromtimestamp(
-                int(item[0]) / 1000,
-                tz=timezone.utc,  # noqa: UP017
-            ),
+            open_time=datetime.fromtimestamp(int(item[0]) / 1000, tz=UTC),
             open_price=Decimal(item[1]),
             high_price=Decimal(item[2]),
             low_price=Decimal(item[3]),
             close_price=Decimal(item[4]),
             volume=Decimal(item[5]),
-            close_time=datetime.fromtimestamp(
-                int(item[6]) / 1000,
-                tz=timezone.utc,  # noqa: UP017
-            ),
+            close_time=datetime.fromtimestamp(int(item[6]) / 1000, tz=UTC),
         )
