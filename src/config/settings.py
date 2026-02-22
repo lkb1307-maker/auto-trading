@@ -13,6 +13,7 @@ DEFAULT_TIMEFRAME = "1h"
 DEFAULT_MAX_TRADES_PER_DAY = 20
 DEFAULT_DAILY_PROFIT_STOP_PCT = 5.0
 DEFAULT_DAILY_LOSS_STOP_PCT = -3.0
+DEFAULT_ORDER_NOTIONAL_USDT = 50.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,9 +30,11 @@ class Settings:
     max_trades_per_day: int = DEFAULT_MAX_TRADES_PER_DAY
     daily_profit_stop_pct: float = DEFAULT_DAILY_PROFIT_STOP_PCT
     daily_loss_stop_pct: float = DEFAULT_DAILY_LOSS_STOP_PCT
+    order_notional_usdt: float = DEFAULT_ORDER_NOTIONAL_USDT
     telegram_token: str | None = None
     telegram_chat_id: str | None = None
     notify_on_start: bool = False
+    notify_on_trade: bool = False
     log_level: str = DEFAULT_LOG_LEVEL
 
 
@@ -120,11 +123,18 @@ def load_settings() -> Settings:
         "DAILY_LOSS_STOP_PCT",
         DEFAULT_DAILY_LOSS_STOP_PCT,
     )
+    order_notional_usdt = _get_float(
+        "ORDER_NOTIONAL_USDT",
+        DEFAULT_ORDER_NOTIONAL_USDT,
+    )
 
     if daily_loss_stop_pct >= daily_profit_stop_pct:
         raise SettingsError(
             "DAILY_LOSS_STOP_PCT must be less than DAILY_PROFIT_STOP_PCT"
         )
+
+    if order_notional_usdt <= 0:
+        raise SettingsError("ORDER_NOTIONAL_USDT must be greater than zero")
 
     return Settings(
         dry_run=dry_run,
@@ -139,8 +149,10 @@ def load_settings() -> Settings:
         max_trades_per_day=max_trades_per_day,
         daily_profit_stop_pct=daily_profit_stop_pct,
         daily_loss_stop_pct=daily_loss_stop_pct,
+        order_notional_usdt=order_notional_usdt,
         telegram_token=os.getenv("TELEGRAM_TOKEN"),
         telegram_chat_id=os.getenv("TELEGRAM_CHAT_ID"),
         notify_on_start=_get_bool("NOTIFY_ON_START", default=False),
+        notify_on_trade=_get_bool("NOTIFY_ON_TRADE", default=False),
         log_level=os.getenv("LOG_LEVEL", DEFAULT_LOG_LEVEL).upper(),
     )

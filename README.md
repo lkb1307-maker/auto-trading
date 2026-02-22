@@ -1,14 +1,14 @@
-# Binance Futures Auto-Trader (Milestone C2)
+# Binance Futures Auto-Trader (Milestone C3)
 
 ## Purpose
-Milestone C2 introduces a pure **risk layer** on top of the strategy flow with strict
-safety defaults:
+Milestone C3 introduces a simulated **execution layer** that routes strategy + risk decisions
+into mock orders with strict safety defaults:
 - public market-data reads,
 - strategy signal generation (EMA crossover),
 - deterministic risk approval/blocking,
-- no live order execution logic.
+- simulated order routing only in DRY_RUN.
 
-## Implemented in Milestones C1 + C2
+## Implemented in Milestones C1 + C2 + C3
 - `ExchangeClient` abstraction and typed domain models (`Candle`, `Balance`, `PositionSummary`, `PriceQuote`, `OrderRequest`, `OrderResult`).
 - `BinanceFuturesTestnetClient` using `urllib` + HMAC SHA256 signing for signed calls.
 - Structured exchange exceptions:
@@ -18,23 +18,27 @@ safety defaults:
 - `Strategy` interface with typed `SignalDecision` output.
 - Pure `EmaCrossStrategy` (no network/order side effects) using candle closes only.
 - Pure `RiskManager` that evaluates each `SignalDecision` using bot state + settings.
-- Bot wiring that fetches candles, generates a strategy decision, evaluates risk, and logs signal + risk outcome each tick.
-- No infinite loops and no real order placement in C2.
+- `OrderRouter` execution layer that converts allowed decisions into DRY_RUN mock orders.
+- Bot wiring that fetches candles, generates strategy decision, evaluates risk, routes execution, and logs outcomes each tick.
+- No infinite loops and no real order placement.
 
-## Milestone C2 risk rules
-- `MAX_TRADES_PER_DAY` (default `20`): block when `state.trades_today >= max`.
-- `DAILY_PROFIT_STOP_PCT` (default `5.0`): block when `state.day_pnl_pct >= stop`.
-- `DAILY_LOSS_STOP_PCT` (default `-3.0`): block when `state.day_pnl_pct <= stop`.
-- `HOLD` signal: returns an `INFO` risk decision and does not allow execution.
+## Milestone C3 execution rules
+- If `risk_decision.allow` is `False`, router skips order execution.
+- If strategy signal is `HOLD`, router skips order execution.
+- If signal is `LONG` and current position is not long, router simulates a long market order.
+- If signal is `SHORT` and current position is not short, router simulates a short market order.
+- On each simulated order:
+  - `state.trades_today` is incremented.
+  - `state.last_trade_at` is set to current UTC time.
 
-## DRY_RUN behavior
+## DRY_RUN safety guarantees
 - `DRY_RUN=1` (default):
   - Public endpoints work without Binance keys.
   - Signed endpoints (`balances`, `positions`) safely return empty lists when keys are missing.
-  - `place_order` returns a mock result and never places real orders.
+  - `place_order` returns a mock `OrderResult` and never places a real order.
 - `DRY_RUN=0`:
   - `BINANCE_API_KEY` and `BINANCE_SECRET_KEY` are required for signed endpoints.
-  - Real order placement is still intentionally disabled in this milestone.
+  - `place_order` raises `NotImplementedError("Live trading not enabled in Milestone C3")`.
 
 ## Environment variables
 
@@ -53,10 +57,13 @@ TIMEFRAME=1h
 STRATEGY_FAST=9
 STRATEGY_SLOW=21
 
-# Milestone C2 additions
 MAX_TRADES_PER_DAY=20
 DAILY_PROFIT_STOP_PCT=5.0
 DAILY_LOSS_STOP_PCT=-3.0
+
+# Milestone C3 additions
+ORDER_NOTIONAL_USDT=50.0
+NOTIFY_ON_TRADE=0
 
 # Optional notifications
 TELEGRAM_TOKEN=
@@ -77,6 +84,3 @@ ruff check .
 black --check .
 pytest
 ```
-
-## Next step
-- C3 can add execution mocks that only run after a risk `allow=True` decision.

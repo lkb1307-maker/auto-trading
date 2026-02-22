@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from src.app.state import BotState
-from src.app.types import Signal
+from src.app.types import UTC, Signal
 from src.config.settings import Settings
 from src.risk.risk_manager import RiskManager
 from src.strategy.base import SignalDecision

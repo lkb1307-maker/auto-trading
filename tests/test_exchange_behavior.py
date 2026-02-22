@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import logging
+from decimal import Decimal
 
 import pytest
 
 from src.config.settings import Settings
+from src.exchange.base import OrderRequest
 from src.exchange.binance_testnet import BinanceFuturesTestnetClient, ExchangeAuthError
 
 
@@ -41,3 +43,25 @@ def test_get_mark_price_uses_request_response(monkeypatch: pytest.MonkeyPatch) -
 
     assert quote.symbol == "BTCUSDT"
     assert str(quote.mark_price) == "12345.67"
+
+
+def test_place_order_raises_when_not_dry_run() -> None:
+    settings = Settings(
+        dry_run=False,
+        binance_api_key="key",
+        binance_secret_key="secret",
+    )
+    client = BinanceFuturesTestnetClient(settings=settings, logger=logging.getLogger())
+
+    order = OrderRequest(
+        symbol="BTCUSDT",
+        side="BUY",
+        order_type="MARKET",
+        quantity=Decimal("0.1"),
+    )
+
+    with pytest.raises(
+        NotImplementedError,
+        match="Live trading not enabled in Milestone C3",
+    ):
+        client.place_order(order)
