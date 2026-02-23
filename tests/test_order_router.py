@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from src.app.state import BotState
@@ -12,6 +12,8 @@ from src.exchange.base import OrderRequest, OrderResult, PriceQuote
 from src.execution.order_router import OrderRouter
 from src.risk.risk_manager import RiskDecision
 from src.strategy.base import SignalDecision
+
+UTC = timezone(timedelta(0))
 
 
 @dataclass
@@ -24,7 +26,7 @@ class FakeExchangeClient:
         return PriceQuote(
             symbol=symbol,
             mark_price=Decimal("100"),
-            event_time=datetime.now(timezone.utc),  # noqa: UP017
+            event_time=datetime.now(UTC),
         )
 
     def place_order(self, order: OrderRequest) -> OrderResult:
@@ -38,11 +40,7 @@ class FakeExchangeClient:
 
 
 def _signal_decision(signal: Signal) -> SignalDecision:
-    return SignalDecision(
-        signal=signal,
-        reason="test",
-        timestamp=datetime.now(timezone.utc),  # noqa: UP017
-    )
+    return SignalDecision(signal=signal, reason="test", timestamp=datetime.now(UTC))
 
 
 def test_route_skips_when_risk_blocked() -> None:

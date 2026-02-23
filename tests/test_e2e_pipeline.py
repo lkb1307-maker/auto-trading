@@ -92,9 +92,44 @@ def _deterministic_candles() -> list[Candle]:
 
 
 @pytest.mark.parametrize("signal", [Signal.LONG, Signal.HOLD])
-def test_run_e2e_returns_summary_and_updates_trades_conditionally(
+def test_run_e2e_returns_summary_and_updates_trades_conditionally_without_network(
     monkeypatch: pytest.MonkeyPatch,
     signal: Signal,
+) -> None:
+    exchange = FakeExchangeClient()
+
+    def fail_if_called(symbol: str, timeframe: str, limit: int) -> list[Candle]:
+        raise AssertionError("get_candles should not be called in default dry-run e2e")
+
+    monkeypatch.setattr(exchange, "get_candles", fail_if_called)
+
+    summary = run_e2e(
+        settings=Settings(dry_run=True),
+        exchange=exchange,
+        strategy=StubStrategy(signal=signal),
+        risk_manager=RiskManager(),
+        router=OrderRouter(exchange_client=exchange, logger=logging.getLogger()),
+    )
+
+    assert set(summary) == {
+        "mode",
+        "symbol",
+        "timeframe",
+        "signal",
+        "risk_allowed",
+        "orders_count",
+        "trades_today",
+        "latency_ms",
+    }
+    assert summary["mode"] == "e2e"
+    assert summary["symbol"] == "BTCUSDT"
+    assert summary["timeframe"] == "1h"
+    assert summary["signal"] in set(Signal)
+    assert summary["trades_today"] == summary["orders_count"]
+
+
+def test_run_e2e_uses_exchange_candles_when_real_testnet_enabled(
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     exchange = FakeExchangeClient()
     captured: dict[str, object] = {}
@@ -107,17 +142,14 @@ def test_run_e2e_returns_summary_and_updates_trades_conditionally(
 
     monkeypatch.setattr(exchange, "get_candles", fake_get_candles)
 
-    summary = run_e2e(
-        settings=Settings(dry_run=True),
+    run_e2e(
+        settings=Settings(dry_run=True, e2e_real_testnet=True),
         exchange=exchange,
-        strategy=StubStrategy(signal=signal),
+        strategy=StubStrategy(signal=Signal.HOLD),
         risk_manager=RiskManager(),
         router=OrderRouter(exchange_client=exchange, logger=logging.getLogger()),
     )
 
-    assert set(summary) == {"signal", "risk_allowed", "orders_count", "trades_today"}
-    assert summary["signal"] in set(Signal)
-    assert summary["trades_today"] == summary["orders_count"]
     assert captured == {"symbol": "BTCUSDT", "timeframe": "1h", "limit": 50}
 
 

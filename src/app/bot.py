@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 
 from src.app.state import BotState
 from src.config.settings import Settings
@@ -33,6 +34,7 @@ class Bot:
         self.state = BotState()
 
     def run_once(self) -> None:
+        started_at = time.perf_counter()
         self.state.mark_tick()
         self.logger.info("bot tick", extra={"tick_count": self.state.tick_count})
 
@@ -58,19 +60,23 @@ class Bot:
             settings=self.settings,
         )
 
+        latency_ms = round((time.perf_counter() - started_at) * 1000, 2)
         self.logger.info(
             "market snapshot",
             extra={
+                "mode": "normal",
                 "symbol": quote.symbol,
+                "timeframe": self.settings.timeframe,
+                "signal": decision.signal,
+                "risk_allowed": risk_decision.allow,
+                "orders_count": len(execution_result.orders),
+                "latency_ms": latency_ms,
                 "mark_price": str(quote.mark_price),
                 "candles": len(candles),
                 "last_close": str(candles[-1].close_price) if candles else "n/a",
-                "decision_signal": decision.signal,
                 "decision_reason": decision.reason,
-                "risk_allow": risk_decision.allow,
                 "risk_reason": risk_decision.reason,
                 "risk_severity": risk_decision.severity,
-                "execution_orders": len(execution_result.orders),
                 "execution_skipped_reason": execution_result.skipped_reason,
             },
         )
