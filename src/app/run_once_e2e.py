@@ -12,7 +12,6 @@ from src.risk.risk_manager import RiskManager
 from src.strategy.base import Strategy
 
 UTC = getattr(dt, "UTC", dt.timezone(dt.timedelta(0)))
-CANDLE_LIMIT = 50
 
 
 def run_e2e(
@@ -30,9 +29,7 @@ def run_e2e(
     state.mark_tick()
 
     if settings.e2e_real_testnet:
-        candles = exchange.get_candles(
-            settings.symbol, settings.timeframe, limit=CANDLE_LIMIT
-        )
+        candles = exchange.get_candles(settings.symbol, settings.timeframe, limit=50)
     else:
         candles = _get_candles_dry_run(settings=settings)
 
@@ -77,5 +74,5 @@ def _get_candles_dry_run(settings: Settings) -> list[Candle]:
             close_price=Decimal(100 + index),
             volume=Decimal("1"),
         )
-        for index in range(CANDLE_LIMIT)
+        for index in range(50)
     ]

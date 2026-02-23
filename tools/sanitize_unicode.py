@@ -63,9 +63,10 @@ def main() -> int:
                 f"U+{codepoint:04X} x{count}"
                 for codepoint, count in sorted(removed.items())
             )
-            print(f"UPDATED {path}: {detail}")
+            removed_count = sum(removed.values())
+            print(f"UPDATED {path}: removed_count={removed_count}; {detail}")
         else:
-            print(f"OK {path}: no hidden unicode controls")
+            print(f"OK {path}: removed_count=0")
 
     if total:
         summary = ", ".join(

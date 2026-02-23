@@ -12,7 +12,9 @@ UTC = timezone(timedelta(0))
 class BotState:
     """In-memory mutable state with safe defaults for skeleton mode."""
 
-    started_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    started_at: datetime = field(
+        default_factory=lambda: datetime.now(UTC),
+    )
     last_tick_at: datetime | None = None
     tick_count: int = 0
     positions: dict[str, PositionSummary] = field(default_factory=dict)
