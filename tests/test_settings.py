@@ -34,6 +34,8 @@ def clear_env(monkeypatch: pytest.MonkeyPatch) -> None:
         "HTTP_TIMEOUT_SECONDS",
         "RETRY_ATTEMPTS",
         "E2E_REAL_TESTNET",
+        "PERF_DB_PATH",
+        "MODE",
     ]:
         monkeypatch.delenv(key, raising=False)
 
@@ -62,6 +64,8 @@ def test_load_settings_allows_missing_binance_keys_in_dry_run(
     assert settings.http_timeout_seconds == 5
     assert settings.retry_attempts == 3
     assert settings.e2e_real_testnet is False
+    assert settings.perf_db_path == "data/perf.sqlite3"
+    assert settings.mode == "normal"
 
 
 def test_load_settings_requires_binance_keys_when_not_dry_run(
@@ -148,3 +152,15 @@ def test_load_settings_parses_hardening_fields(monkeypatch: pytest.MonkeyPatch) 
     assert settings.http_timeout_seconds == 7
     assert settings.retry_attempts == 4
     assert settings.e2e_real_testnet is True
+
+
+def test_load_settings_parses_performance_fields(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PERF_DB_PATH", "custom/perf.sqlite3")
+    monkeypatch.setenv("MODE", "paper")
+
+    settings = load_settings()
+
+    assert settings.perf_db_path == "custom/perf.sqlite3"
+    assert settings.mode == "paper"

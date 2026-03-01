@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from src.app.state import BotState
@@ -10,8 +10,12 @@ from src.app.types import PositionSummary, Signal
 from src.config.settings import Settings
 from src.exchange.base import ExchangeClient, OrderRequest, OrderResult
 from src.execution.sizing import calculate_order_qty
+from src.performance.models import TradeCloseEvent, TradeOpenEvent
+from src.performance.store import PerformanceStore
 from src.risk.risk_manager import RiskDecision
 from src.strategy.base import SignalDecision
+
+UTC = timezone.utc  # noqa: UP017
 
 
 @dataclass(slots=True)
@@ -23,9 +27,15 @@ class ExecutionResult:
 class OrderRouter:
     """Converts approved decisions into simulated orders."""
 
-    def __init__(self, exchange_client: ExchangeClient, logger: logging.Logger) -> None:
+    def __init__(
+        self,
+        exchange_client: ExchangeClient,
+        logger: logging.Logger,
+        performance_store: PerformanceStore | None = None,
+    ) -> None:
         self.exchange_client = exchange_client
         self.logger = logger
+        self.performance_store = performance_store
 
     def route(
         self,
@@ -63,6 +73,38 @@ class OrderRouter:
             quantity=Decimal(str(quantity)),
         )
         order_result = self.exchange_client.place_order(order_request)
+
+        if self.performance_store is not None:
+            existing_trade_id = state.position_trade_ids.get(settings.symbol)
+            if self._position_side(position) in {Signal.LONG, Signal.SHORT}:
+                if existing_trade_id is not None:
+                    self.performance_store.record_close(
+                        existing_trade_id,
+                        TradeCloseEvent(
+                            ts_close=datetime.now(UTC).isoformat(),
+                            exit_price=float(quote.mark_price),
+                            reason_close=f"signal_flip_to_{signal_decision.signal.value}",
+                            exchange_order_ids=order_result.order_id,
+                        ),
+                    )
+                    state.position_trade_ids.pop(settings.symbol, None)
+
+            opened_trade_id = self.performance_store.record_open(
+                TradeOpenEvent(
+                    ts_open=datetime.now(UTC).isoformat(),
+                    symbol=settings.symbol,
+                    side=side,
+                    qty=quantity,
+                    entry_price=float(quote.mark_price),
+                    reason_open=signal_decision.reason,
+                    strategy_name="ema_cross",
+                    strategy_version="v1",
+                    mode=settings.mode,
+                    exchange_order_ids=order_result.order_id,
+                )
+            )
+            state.position_trade_ids[settings.symbol] = opened_trade_id
+
         state.trades_today += 1
         state.last_trade_at = datetime.now(UTC)
         self.logger.info(

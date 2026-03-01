@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from src.app.bot import Bot
 from src.app.run_once_e2e import run_e2e
@@ -9,6 +10,7 @@ from src.config.settings import load_settings
 from src.exchange.binance_testnet import BinanceFuturesTestnetClient
 from src.execution.order_router import OrderRouter
 from src.notify.telegram import TelegramNotifier
+from src.performance.store import PerformanceStore
 from src.risk.risk_manager import RiskManager
 from src.strategy.ema_cross import EmaCrossConfig, EmaCrossStrategy
 
@@ -37,7 +39,13 @@ def main() -> None:
         )
     )
     risk_manager = RiskManager()
-    order_router = OrderRouter(exchange_client=exchange_client, logger=logger)
+    performance_store = PerformanceStore(db_path=Path(settings.perf_db_path))
+    performance_store.init_db()
+    order_router = OrderRouter(
+        exchange_client=exchange_client,
+        logger=logger,
+        performance_store=performance_store,
+    )
 
     if args.mode == "e2e":
         summary = run_e2e(

@@ -58,6 +58,36 @@ into mock orders with strict safety defaults:
 - E2E mode supports optional real Testnet candle fetch via `E2E_REAL_TESTNET=1` while still enforcing `DRY_RUN=1`.
 - Structured logs now include `mode`, `symbol`, `timeframe`, `signal`, `risk_allowed`, `orders_count`, and `latency_ms`.
 
+## Performance Logging (V1)
+- Each confirmed simulated trade-open is persisted to SQLite.
+- If a signal flip closes an existing position, the trade is closed in SQLite with exit price and computed PnL.
+- Default database path: `data/perf.sqlite3` (configurable via `PERF_DB_PATH`).
+
+Schema table: `trades`.
+Key columns include `trade_id`, `ts_open`, `ts_close`, `symbol`, `side`, `qty`,
+`entry_price`, `exit_price`, `fees`, `pnl_usdt`, `pnl_pct`, and strategy/mode metadata.
+
+You can query trades directly:
+
+```bash
+sqlite3 data/perf.sqlite3 "SELECT trade_id, symbol, ts_open, ts_close, pnl_usdt FROM trades ORDER BY ts_open DESC LIMIT 20;"
+```
+
+Quick report example:
+
+```python
+from pathlib import Path
+
+from src.performance.metrics import summarize
+from src.performance.reporter import format_report
+from src.performance.store import PerformanceStore
+
+store = PerformanceStore(Path("data/perf.sqlite3"))
+trades = store.get_trades(time_min="2025-01-01T00:00:00+00:00", time_max="2025-01-01T23:59:59+00:00")
+summary = summarize(trades)
+print(format_report(summary))
+```
+
 ## Environment variables
 
 ```env
@@ -87,6 +117,8 @@ NOTIFY_ON_TRADE=0
 HTTP_TIMEOUT_SECONDS=5
 RETRY_ATTEMPTS=3
 E2E_REAL_TESTNET=0
+PERF_DB_PATH=data/perf.sqlite3
+MODE=normal
 
 # Optional notifications
 TELEGRAM_TOKEN=
