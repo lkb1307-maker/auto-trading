@@ -15,5 +15,14 @@ venv/
 logs/*
 !logs/.gitkeep
 
+# Reports (allow only markdown summaries/bundles)
+reports/*
+!reports/.gitkeep
+!reports/**/
+reports/**/*.json
+reports/**/*.txt
+!reports/**/summary.md
+!reports/**/pr.md
+
 # OS
 .DS_Store
