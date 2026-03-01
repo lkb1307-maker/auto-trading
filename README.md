@@ -58,6 +58,22 @@ into mock orders with strict safety defaults:
 - E2E mode supports optional real Testnet candle fetch via `E2E_REAL_TESTNET=1` while still enforcing `DRY_RUN=1`.
 - Structured logs now include `mode`, `symbol`, `timeframe`, `signal`, `risk_allowed`, `orders_count`, and `latency_ms`.
 
+## Experiment pipeline (run-once)
+- Entrypoint must use module mode: `python -m src.main`.
+- New one-shot mode:
+
+```bash
+python -m src.main run-once --strategy strategy/meanrev_v1.yaml --out reports/exp_demo --start 2024-01-01 --end 2024-01-31 --seed 123
+```
+
+- Wrapper pipeline examples:
+
+```bash
+python -m tools.run_experiment --strategy strategy/meanrev_v1.yaml --out reports/exp_demo --start 2024-01-01 --end 2024-01-31 --seed 123
+python -m tools.summarize_results --in reports/exp_demo --gates strategy/gates.yaml --json
+python -m tools.make_pr_bundle --strategy strategy/meanrev_v1.yaml --report_dir reports/exp_demo --out reports/exp_demo/pr.md
+```
+
 ## Environment variables
 
 ```env

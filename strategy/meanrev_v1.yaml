@@ -1,0 +1,16 @@
+{
+  "name": "meanrev_v1",
+  "symbol": "BTCUSDT",
+  "timeframe": "1h",
+  "strategy": {
+    "fast_period": 9,
+    "slow_period": 21
+  },
+  "risk": {
+    "max_trades_per_day": 20
+  },
+  "backtest": {
+    "start": "2024-01-01",
+    "end": "2024-01-31"
+  }
+}

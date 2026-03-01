@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import datetime as dt
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime
 from decimal import Decimal
 
 from src.app.state import BotState
@@ -64,7 +64,7 @@ class OrderRouter:
         )
         order_result = self.exchange_client.place_order(order_request)
         state.trades_today += 1
-        state.last_trade_at = datetime.now(UTC)
+        state.last_trade_at = dt.datetime.now(getattr(dt, "UTC", dt.timezone.utc))  # noqa: UP017
         self.logger.info(
             "simulated execution routed",
             extra={
