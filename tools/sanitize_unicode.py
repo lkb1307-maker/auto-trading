@@ -39,8 +39,8 @@ def clean_file(path: Path) -> tuple[bool, Counter[int]]:
     raw = path.read_bytes()
     original = raw.decode("utf-8")
     cleaned, removed = clean_text(original)
-    normalized_newline = b"\r" in raw
-    changed = cleaned != original or normalized_newline
+    had_carriage_return = b"\r" in raw
+    changed = cleaned != original or had_carriage_return
     if not changed:
         return False, Counter()
 
