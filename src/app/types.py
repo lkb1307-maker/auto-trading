@@ -2,7 +2,15 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
+
+try:
+    from enum import StrEnum
+except ImportError:  # pragma: no cover - python < 3.11 fallback
+
+    class StrEnum(str, Enum):
+        pass
+
 
 UTC = getattr(dt, "UTC", dt.timezone(dt.timedelta(0)))
 

@@ -18,6 +18,7 @@ class BotState:
     last_tick_at: datetime | None = None
     tick_count: int = 0
     positions: dict[str, PositionSummary] = field(default_factory=dict)
+    position_trade_ids: dict[str, str] = field(default_factory=dict)
     trades_today: int = 0
     day_pnl_pct: float = 0.0
     last_trade_at: datetime | None = None

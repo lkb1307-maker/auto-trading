@@ -16,6 +16,8 @@ DEFAULT_DAILY_LOSS_STOP_PCT = -3.0
 DEFAULT_ORDER_NOTIONAL_USDT = 50.0
 DEFAULT_HTTP_TIMEOUT_SECONDS = 5
 DEFAULT_RETRY_ATTEMPTS = 3
+DEFAULT_PERF_DB_PATH = "data/perf.sqlite3"
+DEFAULT_MODE = "normal"
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,6 +43,8 @@ class Settings:
     http_timeout_seconds: int = DEFAULT_HTTP_TIMEOUT_SECONDS
     retry_attempts: int = DEFAULT_RETRY_ATTEMPTS
     e2e_real_testnet: bool = False
+    perf_db_path: str = DEFAULT_PERF_DB_PATH
+    mode: str = DEFAULT_MODE
 
 
 class SettingsError(ValueError):
@@ -165,4 +169,6 @@ def load_settings() -> Settings:
         ),
         retry_attempts=_get_int("RETRY_ATTEMPTS", default=DEFAULT_RETRY_ATTEMPTS),
         e2e_real_testnet=_get_bool("E2E_REAL_TESTNET", default=False),
+        perf_db_path=os.getenv("PERF_DB_PATH", DEFAULT_PERF_DB_PATH),
+        mode=os.getenv("MODE", DEFAULT_MODE),
     )

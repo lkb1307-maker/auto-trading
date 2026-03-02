@@ -9,6 +9,7 @@ def test_bot_state_defaults() -> None:
     assert state.tick_count == 0
     assert state.last_tick_at is None
     assert state.positions == {}
+    assert state.position_trade_ids == {}
     assert state.started_at is not None
     assert state.started_at.tzinfo == UTC
     assert state.trades_today == 0

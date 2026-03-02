@@ -10,6 +10,7 @@ from src.app.types import PositionSummary, Signal
 from src.config.settings import Settings
 from src.exchange.base import OrderRequest, OrderResult, PriceQuote
 from src.execution.order_router import OrderRouter
+from src.performance.store import PerformanceStore
 from src.risk.risk_manager import RiskDecision
 from src.strategy.base import SignalDecision
 
@@ -133,3 +134,45 @@ def test_route_skips_when_already_same_side() -> None:
     assert result.skipped_reason == "Already SHORT"
     assert exchange.mark_price_calls == 0
     assert exchange.place_order_calls == 0
+
+
+def test_route_records_performance_open_and_close(tmp_path) -> None:
+    exchange = FakeExchangeClient()
+    store = PerformanceStore(tmp_path / "perf.sqlite3")
+    store.init_db()
+    router = OrderRouter(
+        exchange_client=exchange,
+        logger=logging.getLogger(),
+        performance_store=store,
+    )
+    state = BotState()
+
+    first = router.route(
+        signal_decision=_signal_decision(Signal.LONG),
+        risk_decision=RiskDecision(allow=True, reason="ok", severity="INFO"),
+        position=None,
+        state=state,
+        settings=Settings(mode="paper"),
+    )
+    assert len(first.orders) == 1
+
+    open_trade_id = state.position_trade_ids["BTCUSDT"]
+    trades = store.get_trades()
+    assert len(trades) == 1
+    assert trades[0].trade_id == open_trade_id
+    assert trades[0].ts_close is None
+
+    second = router.route(
+        signal_decision=_signal_decision(Signal.SHORT),
+        risk_decision=RiskDecision(allow=True, reason="ok", severity="INFO"),
+        position=PositionSummary(symbol="BTCUSDT", size=1.0),
+        state=state,
+        settings=Settings(mode="paper"),
+    )
+    assert len(second.orders) == 1
+
+    updated = store.get_trades()
+    assert len(updated) == 2
+    closed_first = next(t for t in updated if t.trade_id == open_trade_id)
+    assert closed_first.ts_close is not None
+    assert closed_first.pnl_usdt is not None
